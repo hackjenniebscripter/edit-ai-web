@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b10">
+<title>EDIT AI</title>
+<style>
+:root{--bg:#0b0b10;--panel:#15151f;--panel2:#20202d;--lime:#b8ff3b;--text:#f6f6fb;--muted:#a7a7b8;--line:#303040}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#171729 0%,var(--bg) 55%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:760px;margin:auto;padding:18px 15px 42px}.brand{color:var(--lime);font-weight:900;letter-spacing:.18em;font-size:12px}.hero{font-size:clamp(30px,7vw,48px);line-height:1.02;font-weight:900;margin:12px 0}.sub{color:var(--muted);font-size:14px;line-height:1.5}
+.panel{background:rgba(21,21,31,.94);border:1px solid var(--line);border-radius:18px;padding:15px;margin-top:14px;box-shadow:0 8px 30px #0002}
+h2{font-size:13px;letter-spacing:.1em;margin:0 0 12px;color:var(--muted)}
+button,.filelabel{border:0;border-radius:12px;padding:13px 14px;font-weight:800;font-size:14px;cursor:pointer;background:var(--lime);color:#101014;display:inline-flex;justify-content:center;align-items:center;gap:8px}
+button.secondary,.filelabel.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+button:disabled{opacity:.45;cursor:not-allowed}.full{width:100%}.row{display:flex;gap:9px;flex-wrap:wrap}.row>*{flex:1;min-width:110px}
+input[type=file]{display:none}label{font-size:13px;color:var(--muted);display:block;margin-bottom:7px}.styles button,.intensities button{min-width:calc(50% - 6px);flex:1}.styles button.active,.intensities button.active{background:var(--lime);color:#111}
+.preview{background:#050508;border-radius:14px;overflow:hidden;aspect-ratio:9/16;max-height:58vh;display:flex;align-items:center;justify-content:center;position:relative}
+canvas{display:block;width:100%;height:100%;object-fit:contain}.placeholder{color:var(--muted);text-align:center;padding:25px}.placeholder b{display:block;color:white;font-size:22px;margin:10px}
+textarea,input[type=text]{width:100%;background:#0e0e15;border:1px solid var(--line);color:var(--text);border-radius:11px;padding:12px;font:inherit}
+input[type=range]{width:100%;accent-color:var(--lime)}.rangehead{display:flex;justify-content:space-between;color:var(--muted);font-size:13px}
+.status{color:var(--muted);font-size:13px;line-height:1.5;white-space:pre-wrap}.pill{display:inline-block;padding:5px 8px;border-radius:999px;background:#272737;color:#d8d8e5;font-size:11px;margin:3px 3px 0 0}
+.progress{height:6px;background:#292938;border-radius:9px;overflow:hidden;margin-top:9px}.progress div{height:100%;width:0;background:var(--lime);transition:width .2s}
+footer{font-size:11px;color:#77778a;text-align:center;padding:20px 8px}.small{font-size:11px;color:var(--muted)}
+@media(min-width:650px){main{padding-top:30px}.workspace{display:grid;grid-template-columns: minmax(0, .85fr) minmax(0,1fr);gap:14px;align-items:start}.workspace .panel{margin-top:14px}.preview{max-height:70vh}}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">EDIT AI / CREATOR LAB</div>
+  <div class="hero">Sua edit.<br><span style="color:var(--lime)">No impacto.</span></div>
+  <p class="sub">Editor experimental de anime: escolha um vídeo, selecione os efeitos e grave uma prévia com shake, zoom, flashes e tratamento de cor.</p>
+
+  <section class="panel">
+    <h2>01 / IMPORTAR VÍDEO</h2>
+    <div class="row">
+      <label class="filelabel full" for="videoFile">＋ Escolher vídeo</label>
+      <input id="videoFile" type="file" accept="video/*">
+      <label class="filelabel secondary full" for="audioFile">♫ Música separada (opcional)</label>
+      <input id="audioFile" type="file" accept="audio/*">
+    </div>
+    <p id="fileStatus" class="status">Nenhum vídeo selecionado. Os arquivos permanecem no seu dispositivo.</p>
+  </section>
+
+  <div class="workspace">
+    <section class="panel">
+      <h2>02 / PRÉVIA DA EDIT</h2>
+      <div class="preview" id="preview">
+        <div class="placeholder" id="placeholder"><div style="font-size:40px">▶</div><b>EDIT AI</b>Importe um vídeo para começar.</div>
+        <canvas id="stage" hidden></canvas>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button id="playBtn" class="secondary" disabled>▶ Pré-visualizar</button>
+        <button id="stopBtn" class="secondary" disabled>■ Parar</button>
+      </div>
+      <div class="row" style="margin-top:9px">
+        <button id="exportBtn" class="full" disabled>● Gravar / Exportar prévia</button>
+      </div>
+      <div class="progress"><div id="progressBar"></div></div>
+      <p class="small">Exporta uma gravação da prévia em tempo real. Compatibilidade de MP4 depende do navegador; WebM costuma funcionar melhor no Chrome Android.</p>
+    </section>
+
+    <section class="panel">
+      <h2>03 / PRESET DE EFEITOS</h2>
+      <div class="row styles">
+        <button class="active" data-style="impact">IMPACT</button>
+        <button class="secondary" data-style="velocity">VELOCITY</button>
+        <button class="secondary" data-style="dark">DARK AMV</button>
+        <button class="secondary" data-style="cinema">CINEMATIC</button>
+      </div>
+      <div style="height:16px"></div>
+      <div class="rangehead"><span>Intensidade do shake</span><b id="shakeVal">65%</b></div>
+      <input id="shake" type="range" min="0" max="100" value="65">
+      <div style="height:12px"></div>
+      <div class="rangehead"><span>Flash nos impactos</span><b id="flashVal">45%</b></div>
+      <input id="flash" type="range" min="0" max="100" value="45">
+      <div style="height:12px"></div>
+      <div class="rangehead"><span>Zoom dinâmico</span><b id="zoomVal">55%</b></div>
+      <input id="zoom" type="range" min="0" max="100" value="55">
+      <div style="height:16px"></div>
+      <h2>04 / COMANDO</h2>
+      <label for="prompt">Descreva a edit</label>
+      <textarea id="prompt" rows="3">Edit de anime com shake pesado, velocity e cortes sincronizados com as batidas.</textarea>
+      <div class="row" style="margin-top:9px">
+        <button id="voiceBtn" class="secondary">🎙 Falar comando</button>
+        <button id="applyPrompt" class="secondary">Interpretar</button>
+      </div>
+      <p id="promptStatus" class="status">O comando ajusta os controles disponíveis; não é um modelo generativo completo.</p>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>05 / PLANO AUTOMÁTICO</h2>
+    <button id="planBtn" class="full">✦ Analisar e montar plano</button>
+    <div id="plan" class="status" style="margin-top:12px">Importe um vídeo e monte um plano de efeitos. A detecção de batidas é uma estimativa visual baseada no áudio disponível.</div>
+  </section>
+  <footer>EDIT AI • Protótipo experimental 0.2 • Use vídeos e músicas que você tem direito de editar.</footer>
+</main>
+
+<video id="video" playsinline crossorigin="anonymous" hidden></video>
+<audio id="audio" hidden></audio>
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const video=$('video'), audio=$('audio'), canvas=$('stage'), ctx=canvas.getContext('2d');
+let videoURL=null,audioURL=null,raf=0,playing=false,recording=false,recorder=null,chunks=[],startTime=0,style='impact',lastBeat=0,beat=0;
+const styleButtons=[...document.querySelectorAll('[data-style]')];
+const resize=()=>{const w=720,h=1280;if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}};
+resize();
+function setStatus(t){$('fileStatus').textContent=t}
+function updateRange(id,out){$(out).textContent=$(id).value+'%'}
+['shake','flash','zoom'].forEach(id=>$(id).addEventListener('input',()=>updateRange(id,id+'Val')));
+function selectStyle(s){style=s;styleButtons.forEach(b=>{let active=b.dataset.style===s;b.classList.toggle('active',active);b.classList.toggle('secondary',!active)});}
+styleButtons.forEach(b=>b.addEventListener('click',()=>selectStyle(b.dataset.style)));
+$('videoFile').addEventListener('change',e=>{
+ const f=e.target.files[0];if(!f)return;
+ if(videoURL)URL.revokeObjectURL(videoURL);videoURL=URL.createObjectURL(f);video.src=videoURL;video.load();
+ $('placeholder').hidden=true;canvas.hidden=false;$('playBtn').disabled=false;$('stopBtn').disabled=false;$('exportBtn').disabled=false;
+ setStatus('Vídeo: '+f.name+'\\nDuração: será lida pelo navegador.');video.addEventListener('loadedmetadata',()=>{drawFrame(0);setStatus('Vídeo carregado • '+video.videoWidth+'×'+video.videoHeight+' • '+video.duration.toFixed(1)+' s');},{once:true});
+});
+$('audioFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;if(audioURL)URL.revokeObjectURL(audioURL);audioURL=URL.createObjectURL(f);audio.src=audioURL;audio.load();setStatus('Música separada carregada: '+f.name+'\\nEla será tocada junto à prévia quando iniciar.');});
+function intensityAt(t){ // rhythmic pulses, not true beat detection
+ const pulseRate=style==='velocity'?2.3:1.7;
+ const phase=(t*pulseRate)%1;
+ const pulse=Math.pow(Math.max(0,1-phase),5);
+ const wobble=(Math.sin(t*17)+Math.sin(t*23.7)*.5)*.25+.5;
+ return Math.max(pulse,wobble*.12);
+}
+function drawFrame(t){
+ if(!video.videoWidth||!video.videoHeight)return;
+ resize();
+ const w=canvas.width,h=canvas.height;
+ const sh=+$('shake').value/100, fl=+$('flash').value/100, zm=+$('zoom').value/100;
+ const p=intensityAt(t), shakeAmp=sh*p*35, dx=(Math.sin(t*67)+Math.sin(t*41)*.4)*shakeAmp, dy=(Math.cos(t*59)+Math.sin(t*37)*.4)*shakeAmp;
+ const zoom=1+zm*(.018+p*.12);
+ ctx.save();ctx.fillStyle='#050508';ctx.fillRect(0,0,w,h);
+ ctx.translate(w/2+dx,h/2+dy);ctx.scale(zoom,zoom);
+ const scale=Math.max(w/video.videoWidth,h/video.videoHeight);
+ const dw=video.videoWidth*scale,dh=video.videoHeight*scale;
+ ctx.filter=style==='dark'?'contrast(1.35) saturate(.55) brightness(.82)':style==='cinema'?'contrast(1.15) saturate(.9)':'contrast(1.18) saturate(1.12)';
+ ctx.drawImage(video,-dw/2,-dh/2,dw,dh);ctx.filter='none';ctx.restore();
+ if(style==='impact'||style==='velocity'){
+   const tint=style==='velocity'?'rgba(80,170,255,':'rgba(255,255,255,';
+   if(p>0.58){ctx.fillStyle=tint+(Math.min(.5,(p-.58)*fl*1.4))+')';ctx.fillRect(0,0,w,h);}
+   if(p>.72){ctx.strokeStyle='rgba(255,255,255,'+(p*.35)+')';ctx.lineWidth=10;ctx.strokeRect(8,8,w-16,h-16);}
+ }
+ if(style==='dark'){ctx.fillStyle='rgba(12,22,65,.22)';ctx.fillRect(0,0,w,h);}
+ if(style==='cinema'){const grad=ctx.createLinearGradient(0,0,0,h);grad.addColorStop(0,'rgba(0,0,0,.4)');grad.addColorStop(.2,'transparent');grad.addColorStop(.8,'transparent');grad.addColorStop(1,'rgba(0,0,0,.45)');ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);}
+ if(recording && video.duration>0)$('progressBar').style.width=Math.min(100,video.currentTime/video.duration*100)+'%';
+}
+function loop(){if(!playing)return;drawFrame(video.currentTime||0);raf=requestAnimationFrame(loop)}
+$('playBtn').addEventListener('click',async()=>{
+ if(!video.src)return;
+ if(playing){video.pause();if(audio.src)audio.pause();playing=false;cancelAnimationFrame(raf);$('playBtn').textContent='▶ Pré-visualizar';return;}
+ try{await video.play();if(audio.src){audio.currentTime=0;await audio.play().catch(()=>{});}playing=true;$('playBtn').textContent='Ⅱ Pausar';loop();}catch(e){setStatus('Não foi possível reproduzir o vídeo. Tente selecionar outro arquivo.');}
+});
+$('stopBtn').addEventListener('click',()=>{video.pause();video.currentTime=0;if(audio.src){audio.pause();audio.currentTime=0;}playing=false;cancelAnimationFrame(raf);drawFrame(0);$('playBtn').textContent='▶ Pré-visualizar';});
+video.addEventListener('ended',()=>{playing=false;cancelAnimationFrame(raf);$('playBtn').textContent='▶ Pré-visualizar';});
+function interpret(){
+ const p=$('prompt').value.toLowerCase();
+ if(p.includes('velocity')||p.includes('acelera'))selectStyle('velocity');
+ else if(p.includes('dark')||p.includes('escuro'))selectStyle('dark');
+ else if(p.includes('cinema'))selectStyle('cinema');
+ else if(p.includes('impact')||p.includes('shake'))selectStyle('impact');
+ if(p.includes('leve'))$('shake').value=25;else if(p.includes('médio')||p.includes('medio'))$('shake').value=50;else if(p.includes('pesado')||p.includes('insano')||p.includes('forte'))$('shake').value=85;
+ if(p.includes('flash'))$('flash').value=75;
+ if(p.includes('zoom'))$('zoom').value=75;
+ ['shake','flash','zoom'].forEach(id=>updateRange(id,id+'Val'));
+ $('promptStatus').textContent='Comando interpretado. Os controles foram ajustados conforme as palavras detectadas.';
+}
+$('applyPrompt').addEventListener('click',interpret);
+$('voiceBtn').addEventListener('click',()=>{
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){$('promptStatus').textContent='Reconhecimento de voz não disponível neste navegador. Você pode digitar o comando.';return;}
+ const r=new SR();r.lang='pt-BR';r.onresult=e=>{$('prompt').value=e.results[0][0].transcript;interpret()};r.onerror=()=>{$('promptStatus').textContent='Não foi possível reconhecer a voz. Tente digitar o comando.'};r.start();
+});
+$('planBtn').addEventListener('click',()=>{
+ if(!video.src){$('plan').textContent='Primeiro importe um vídeo.';return;}
+ const duration=video.duration||0, bpm=style==='velocity'?140:120;
+ const beats=Math.floor(duration*bpm/60);
+ $('plan').innerHTML='';
+ const lines=[
+ `Vídeo: ${duration.toFixed(1)} segundos`,
+ `Preset: ${style.toUpperCase()} • Shake ${$('shake').value}% • Flash ${$('flash').value}% • Zoom ${$('zoom').value}%`,
+ `Plano estimado: cerca de ${beats} pulsos a ${bpm} BPM (estimativa, não é análise real da música).`,
+ '1. Abrir com contraste e movimento suave.',
+ '2. Alternar zoom e shake nos pulsos fortes.',
+ '3. Usar flashes breves nas transições selecionadas.',
+ '4. Manter os efeitos mais fortes nos impactos para não deixar a imagem ilegível.',
+ '5. Pré-visualizar e gravar a composição.'
+ ].join('\\n');
+});
+async function exportPreview(){
+ if(!video.src)return;
+ if(!canvas.captureStream||!window.MediaRecorder){$('plan').textContent='Este navegador não oferece gravação de canvas. Tente Chrome atualizado no Android.';return;}
+ try{
+  $('exportBtn').disabled=true;$('exportBtn').textContent='● Gravando…';
+  video.pause();video.currentTime=0;if(audio.src){audio.pause();audio.currentTime=0;}
+  drawFrame(0);
+  const stream=canvas.captureStream(30);
+  let combined=stream;
+  // Audio capture from source is browser-dependent; try video captureStream.
+  try{
+   const sourceStream=video.captureStream?video.captureStream():null;
+   if(sourceStream){sourceStream.getAudioTracks().forEach(t=>stream.addTrack(t));}
+  }catch(e){}
+  const mime=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(m=>MediaRecorder.isTypeSupported(m))||'';
+  recorder=new MediaRecorder(combined,mime?{mimeType:mime}:undefined);chunks=[];
+  recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+  recorder.onstop=()=>{
+   const blob=new Blob(chunks,{type:recorder.mimeType||'video/webm'}),url=URL.createObjectURL(blob);
+   const a=document.createElement('a');a.href=url;a.download='edit-ai-preview.webm';a.textContent='Baixar vídeo exportado';
+   a.style.cssText='display:block;margin-top:12px;color:#b8ff3b;font-weight:bold;text-align:center';
+   $('plan').appendChild(a);$('exportBtn').disabled=false;$('exportBtn').textContent='● Gravar / Exportar prévia';$('progressBar').style.width='100%';
+   $('plan').scrollIntoView({behavior:'smooth',block:'nearest'});
+  };
+  recorder.start(250);recording=true;playing=true;video.muted=true;await video.play();if(audio.src){audio.currentTime=0;audio.play().catch(()=>{});}loop();
+  video.onended=()=>{recording=false;playing=false;cancelAnimationFrame(raf);if(recorder&&recorder.state!=='inactive')recorder.stop();video.muted=false;$('playBtn').textContent='▶ Pré-visualizar'};
+ }catch(e){$('plan').textContent='Falha ao iniciar exportação. Tente Chrome atualizado e um vídeo menor.';recording=false;$('exportBtn').disabled=false;$('exportBtn').textContent='● Gravar / Exportar prévia';}
+}
+$('exportBtn').addEventListener('click',exportPreview);
+})();
+</script>
+</body>
+</html>
